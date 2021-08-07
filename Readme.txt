@@ -1,12 +1,20 @@
-Tomb Raider Level Modifier (TRMOD) Public BETA 17-12-2015
+Tomb Raider Level Modifier (TRMOD) 0.3
+2015 Beta 1-2 b122251
+2021 0.3 Erik R
 =========================================================
 
-This is a beta of trmod. It is released mostly for feedback-purposes.
-If you find any flaws, please contact me (b122251) at tombraiderforums.com.
-This beta supports Tomb Raider 1 on the PC and PlayStation,
-and Tomb Raider 2 on the PC. This program uses a commandline interface.
+This program can modify and list the contents of Tomb Raider level files.
+It supports TR1 PC, TR1 PSX, TUB PC, and TR2 PC formats.
 
-Sadly, the manual is not finished yet, so here's a list of the commands.
+This program comes with ABSOLUTELY NO WARRANTY.
+This program is distributed under the GNU General Public License 3.0.
+This program is dedicated to everybody on the Tomb Raider Forums.
+
+If you find any bugs, please contact Aerik72 at tombraiderforums.com.
+(I'll probably invite you to the github repository to fix it. ;))
+This program uses a command line interface.
+
+Here's a list of the commands.
 I recommend keeping the TRosettaStone at hand for clarification, also
 the clist command can teach you a lot about much of the syntax.
 
@@ -454,4 +462,10 @@ COMMAND LIST:
 • trmod [FILE] GET OFFSET {Position}
   This command returns the offset of a given thing in a level.
   Example TRMOD LEVEL10C.PSX GET OFFSET NUMITEMS
++===========================================================================================+
+• trmod [FILE] EXTRACT TEXTILE {Page # | "ALL"}
+  This command extracts one or all texture tiles, and writes them to a .bmp file along with the palette.
+  Note that Page # is 0-indexed
+  Example TRMOD LEVEL3A.PHD EXTRACT TEXTILE ALL // Writes palette.bmp, textile0.bmp, textile1.bmp, ... textile11.bmp
+          TRMOD EGYPT.TUB EXTRACT TEXTILE 7 // Writes palette.bmp, textile7.bmp
 +===========================================================================================+

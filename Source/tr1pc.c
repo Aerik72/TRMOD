@@ -23,6 +23,8 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	unsigned short freeshort2;
 	unsigned short freeshort3;
 	unsigned short freeshort4;
+	int zeroIsTub = _strnicmp(substring(args[1], strlen(args[1]) - 3, 3), "tub", 3);
+
 	// <FILE NAVIGATION>
 	curpos += 4; // Version already read
 	
@@ -111,9 +113,27 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	curpos+=4+(freeuint1<<4); // [NumSpriteSequences]
 	p_NumSpriteSequences=curpos;
 	memcpy(&freeuint1, bytelist+curpos, 4);
-	curpos+=4+(freeuint1<<3); // [NumCameras]
-	if (!_strnicmp(substring(args[1],strlen(args[1])-3,3),"tub",3)) curpos+=768;
-	p_NumCameras=curpos;
+	curpos+=4+(freeuint1<<3);
+
+	if (zeroIsTub == 0)
+	{
+		// TUB palette
+		// tr_colour Palette[256]; // 8-bit palette (768 bytes)
+		// This consists of 256[tr_colour] structs, one for each palette entry.However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
+		// This used for all 8-bit colour, such as 8-bit textures.
+		for (int i = 0; i < 256; i++)
+		{
+			memcpy(&palette[i * 3 + 0], bytelist + curpos + 2, 1); // r
+			memcpy(&palette[i * 3 + 1], bytelist + curpos + 1, 1); // g
+			memcpy(&palette[i * 3 + 2], bytelist + curpos + 0, 1); // b
+			palette[i * 3 + 0] *= 4;
+			palette[i * 3 + 1] *= 4;
+			palette[i * 3 + 2] *= 4;
+			curpos += 3;
+		}
+	}
+
+	p_NumCameras=curpos; // [NumCameras]
 	memcpy(&freeuint1, bytelist+curpos, 4);
 	curpos+=4+(freeuint1<<4); // [NumSoundSources]
 	p_NumSoundSources = curpos;
@@ -131,23 +151,25 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	memcpy(&freeuint1, bytelist+curpos, 4);
 	curpos += 8196+(freeuint1*22);
 	
-	//tr_colour Palette[256]; // 8-bit palette (768 bytes)
-	// 9.2.Palette
-	// This consists of 256[tr_colour] structs, one for each palette entry.However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
-	// This used for all 8-bit colour, such as 8-bit textures.
-	for (int i = 0; i < 256; i++)
+	if (zeroIsTub != 0)
 	{
-		memcpy(&palette[i * 3 + 0], bytelist + curpos + 2, 1); // r
-		memcpy(&palette[i * 3 + 1], bytelist + curpos + 1, 1); // g
-		memcpy(&palette[i * 3 + 2], bytelist + curpos + 0, 1); // b
-		palette[i * 3 + 0] *= 4;
-		palette[i * 3 + 1] *= 4;
-		palette[i * 3 + 2] *= 4;
-		curpos += 3;
+		// TR1 palette
+		// tr_colour Palette[256]; // 8-bit palette (768 bytes)
+		// This consists of 256[tr_colour] structs, one for each palette entry.However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
+		// This used for all 8-bit colour, such as 8-bit textures.
+		for (int i = 0; i < 256; i++)
+		{
+			memcpy(&palette[i * 3 + 0], bytelist + curpos + 2, 1); // r
+			memcpy(&palette[i * 3 + 1], bytelist + curpos + 1, 1); // g
+			memcpy(&palette[i * 3 + 2], bytelist + curpos + 0, 1); // b
+			palette[i * 3 + 0] *= 4;
+			palette[i * 3 + 1] *= 4;
+			palette[i * 3 + 2] *= 4;
+			curpos += 3;
+		}
 	}
 
 	// [NumCinematicFrames]
-	if (!_strnicmp(substring(args[1],strlen(args[1])-3,3),"tub",3)) curpos-=768;
 	memcpy(&freeshort3, bytelist+curpos, 2);
 	curpos+=2+(freeshort3<<4); // [NumDemoData]
 	p_NumDemoData=curpos;
@@ -224,7 +246,7 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"add",3)&&!_strnicmp(args[3],"overlap",7)) tr1pc_add_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"overwrite",7)&&!_strnicmp(args[3],"overlap",7)) tr1pc_overwrite_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr1pc_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumDemoData, p_NumBoxes, p_NumOverlaps, p_NumSoundDetails, p_NumSamples, p_NumSampleIndices, p_NumSoundSources, fsize);
-	if (strcmp(args[2], "extract") == 0 && strcmp(args[3], "textile") == 0) tr1pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles, palette, strcmp(args[4], "all") == 0 ? -1 : atoi(args[4]));
+	if (!_strnicmp(args[2],"extract",7)&&!strnicmp(args[3],"textile",7)) tr1pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles, palette, !strnicmp(args[4],"all",3) ? -1 : atoi(args[4]));
 
 	free(p_TexTiles);
 	free(roomX);
