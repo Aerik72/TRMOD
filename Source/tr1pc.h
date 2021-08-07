@@ -59,6 +59,6 @@ void tr1pc_replace_zone(char *bytelist, char *args[], unsigned p_NumBoxes, unsig
 void tr1pc_add_overlap(char *bytelist, char *args[], unsigned argc, unsigned p_NumOverlaps, unsigned fsize);
 void tr1pc_overwrite_overlap(char *bytelist, char *args[], unsigned argc, unsigned p_NumOverlaps, unsigned fsize);
 void tr1pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumItems, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumDemoData, unsigned p_NumBoxes, unsigned p_NumOverlaps, unsigned p_NumSoundDetails, unsigned p_NumSamples, unsigned p_NumSampleIndices, unsigned p_NumSoundSources, unsigned fsize);
-void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, int selection);
+void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, unsigned char* palette, int selection);
 
 #endif
