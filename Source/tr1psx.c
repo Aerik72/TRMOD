@@ -176,6 +176,7 @@ void tr1psx_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"add",3)&&!_strnicmp(args[3],"overlap",7)) tr1pc_add_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"overwrite",7)&&!_strnicmp(args[3],"overlap",7)) tr1pc_overwrite_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr1psx_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumBoxes, p_NumOverlaps, p_NumSoundSources, fsize);
+	if (!_strnicmp(args[2], "extract", 7) && !strnicmp(args[3], "textile", 7)) printf("EXTRACT TEXTILE is not supported for PSX file format.");
 
 	free(roomX);
 	free(roomY);

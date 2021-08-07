@@ -119,8 +119,9 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	{
 		// TUB palette
 		// tr_colour Palette[256]; // 8-bit palette (768 bytes)
-		// This consists of 256[tr_colour] structs, one for each palette entry.However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
-		// This used for all 8-bit colour, such as 8-bit textures.
+		// This consists of 256[tr_colour] structs, one for each palette entry.
+		// However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
+		// This is used for all 8-bit colour, such as 8-bit textures.
 		for (int i = 0; i < 256; i++)
 		{
 			memcpy(&palette[i * 3 + 0], bytelist + curpos + 2, 1); // r
@@ -155,8 +156,9 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	{
 		// TR1 palette
 		// tr_colour Palette[256]; // 8-bit palette (768 bytes)
-		// This consists of 256[tr_colour] structs, one for each palette entry.However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
-		// This used for all 8-bit colour, such as 8-bit textures.
+		// This consists of 256[tr_colour] structs, one for each palette entry.
+		// However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
+		// This is used for all 8-bit colour, such as 8-bit textures.
 		for (int i = 0; i < 256; i++)
 		{
 			memcpy(&palette[i * 3 + 0], bytelist + curpos + 2, 1); // r
@@ -258,6 +260,7 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	free(p_NumLights);
 	free(p_NumStaticMeshes);
 	free(p_AlternateRoom);
+	free(palette);
 }
 void tr1pc_list(char *bytelist, char *args[], unsigned roomX[], int roomY[], unsigned roomZ[], unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumBoxes, unsigned p_NumSoundSources, unsigned p_NumItems, unsigned short numRooms, unsigned fsize){
 	/*
@@ -3149,7 +3152,7 @@ void tr1pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_Nu
 	if (!_strnicmp(args[4],"numsampleindices",16)) printf("%X\n",p_NumSampleIndices);
 }
 
-// unsigned selection // 0 for all, 1 - numTexTiles for an individual texture tile
+// int selection // -1 for all, 0 - (numTexTiles-1) for an individual texture tile
 void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, unsigned char* palette, int selection)
 {
 	if (selection < -1 || selection >= (int)numTexTiles)

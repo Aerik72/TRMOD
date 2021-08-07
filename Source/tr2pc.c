@@ -6,7 +6,7 @@
 #include "tr1pc.h"
 #include "tr2pc.h"
 void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
-	unsigned curpos; // Current Position in the file navigation
+	unsigned curpos = 0; // Current Position in the file navigation
 	unsigned p_NumFloorData; // Offset of NumFloorData
 	unsigned p_NumSpriteSequences; // Offset of NumSpriteSequences
 	unsigned p_NumCameras; // Offset of NumCameras
@@ -21,8 +21,74 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	unsigned short freeshort2;
 	unsigned short freeshort3;
 	unsigned short freeshort4;
+	BYTE* palette8 = malloc(768 * sizeof(BYTE));
+	BYTE* palette16 = malloc(768 * sizeof(BYTE));
+	unsigned short numTexTiles;
+	unsigned* p_TexTiles8;
+	unsigned* p_TexTiles16;
+
 	// <FILE NAVIGATION>
-	memcpy(&freeuint1, bytelist+1796, 4);
+	curpos += 4; // Version already read (4 bytes)
+
+	// 8-bit palette
+	// tr_colour Palette[256]; // 8-bit palette (768 bytes)
+	// This consists of 256[tr_colour] structs, one for each palette entry.
+	// However, the individual colour values range from 0 to 63; they must be multiplied by 4 to get the correct values.
+	// This is used for all 8-bit colour, such as 8-bit textures.
+	for (int i = 0; i < 256; i++)
+	{
+		memcpy(&palette8[i * 3 + 0], bytelist + curpos + 2, 1); // r
+		memcpy(&palette8[i * 3 + 1], bytelist + curpos + 1, 1); // g
+		memcpy(&palette8[i * 3 + 2], bytelist + curpos + 0, 1); // b
+		palette8[i * 3 + 0] *= 4;
+		palette8[i * 3 + 1] *= 4;
+		palette8[i * 3 + 2] *= 4;
+		curpos += 3; // tr_colour is 3 bytes wide
+	}
+
+	// 16-bit palette
+	// NOTE: There is no reason for us to store the unused byte, so we'll discard it for a smaller memory footprint.
+	// tr_colour4 Palette16[256]; // 16-bit palette (1024 bytes)
+	// struct tr_colour4  // 4 bytes
+	// {
+	//		uint8_t Red;
+	//		uint8_t Green;
+	//		uint8_t Blue;
+	//		uint8_t Unused;
+	// };
+	for (int i = 0; i < 256; i++)
+	{
+		memcpy(&palette16[i * 3 + 0], bytelist + curpos + 3, 1); // r
+		memcpy(&palette16[i * 3 + 1], bytelist + curpos + 2, 1); // g
+		memcpy(&palette16[i * 3 + 2], bytelist + curpos + 1, 1); // b
+		palette16[i * 3 + 0] *= 4;
+		palette16[i * 3 + 1] *= 4;
+		palette16[i * 3 + 2] *= 4;
+		curpos += 4; // tr_colour4 is 4 bytes wide
+	}
+
+	// Texture tiles
+	// uint32_t NumTextiles; // number of texture tiles (4 bytes)
+	// tr2_textile8 Textile8[NumTextiles]; // 8-bit (palettized) textiles (NumTextiles * 65536 bytes)
+	// tr2_textile16 Textile16[NumTextiles]; // 16-bit (ARGB) textiles (NumTextiles * 131072 bytes)
+	memcpy(&freeuint1, bytelist + curpos, 4); // Number of Texture Tiles
+	numTexTiles = freeuint1;
+	curpos += 4;
+
+	p_TexTiles8 = malloc(numTexTiles * sizeof(unsigned)); // Offsets of 8-bit TexTiles
+	for (int i = 0; i < numTexTiles; i++)
+	{
+		p_TexTiles8[i] = curpos;
+		curpos += (1 << 16); // Each texture is 8 bits in a 256 x 256 grid a.k.a. 2^16
+	}
+	p_TexTiles16 = malloc(numTexTiles * sizeof(unsigned)); // Offsets of 16-bit TexTiles
+	for (int i = 0; i < numTexTiles; i++)
+	{
+		p_TexTiles16[i] = curpos;
+		curpos += (2 << 16); // Each texture is 16 bits in a 256 x 256 grid a.k.a. 2 * (2^16)
+	}
+
+	memcpy(&freeuint1, bytelist + 1796, 4);
 	curpos=1804+(freeuint1*196608); // [NumRooms]
 	memcpy(&freeshort1,bytelist+curpos,2);
 	unsigned short numRooms=freeshort1; // Number of Rooms
@@ -182,7 +248,12 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"add",3)&&!_strnicmp(args[3],"overlap",7)) tr1pc_add_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"overwrite",7)&&!_strnicmp(args[3],"overlap",7)) tr1pc_overwrite_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr2pc_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumDemoData, p_NumBoxes, p_NumOverlaps, p_NumSoundSources, fsize);
+	if (!_strnicmp(args[2], "extract", 7) && !strnicmp(args[3], "textile", 7)) tr2pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles8, palette8, !strnicmp(args[4], "all", 3) ? -1 : atoi(args[4]));
 
+	free(palette8);
+	free(palette16);
+	free(p_TexTiles8);
+	free(p_TexTiles16);
 	free(roomX);
 	free(roomY);
 	free(roomZ);
@@ -2826,5 +2897,70 @@ void tr2pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_Nu
 		memcpy(&freeuint1, bytelist+curpos, 4);
 		curpos+=4+(freeuint1*8);
 		if (!_strnicmp(args[4],"numsampleindices",16)) printf("%X\n",curpos);
+	}
+}
+
+// int selection // -1 for all, 0 - (numTexTiles-1) for an individual texture tile
+void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles8, BYTE* palette8, int selection)
+{
+	if (selection < -1 || selection >= (int)numTexTiles)
+	{
+		printf("ERROR: Textile selection must be between \"0\" and \"%d\" or \"all\", argument was \"%d\"", numTexTiles - 1, selection);
+		return 0;
+	}
+
+	printf("Extracting 8-bit textile %d...\n", selection);
+	// This function extracts a texture tile from the level into a bitmap file. The syntax is "trmod [FILE] EXTRACT TEXTILE [#/All]".
+
+	printf("Writing \"palette8.bmp\"...\n");
+	writeBitmap(palette8, "palette8.bmp", 16, 16);
+
+	const unsigned w = 256;
+	const unsigned h = 256;
+
+	for (int t = (selection == -1 ? 0 : selection); t <= (selection == -1 ? numTexTiles - 1 : selection); ++t)
+	{
+		BYTE* img = malloc(3 * w * h);
+		memset(img, 0, 3 * w * h); // Fill the whole image with 0s
+
+		for (int j = 0; j < h; j++)
+		{
+			for (int i = 0; i < w; i++)
+			{
+				unsigned int curpos = j * w + i;
+				unsigned char pixelKey;
+				unsigned char r;
+				unsigned char g;
+				unsigned char b;
+
+				memcpy(&pixelKey, bytelist + p_TexTiles8[t] + curpos, 1);
+
+				if (pixelKey != 0)
+				{
+					memcpy(&r, palette8 + pixelKey * 3 + 2, 1);
+					memcpy(&g, palette8 + pixelKey * 3 + 1, 1);
+					memcpy(&b, palette8 + pixelKey * 3 + 0, 1);
+				}
+				else // pixelKey == 0 // Reserved for pure-magenta aka transparent
+				{
+					r = 255;
+					g = 0;
+					b = 255;
+				}
+
+				img[i * 3 + j * w * 3 + 2] = r;
+				img[i * 3 + j * w * 3 + 1] = g;
+				img[i * 3 + j * w * 3 + 0] = b;
+			}
+		}
+
+		unsigned fnameLen = 17 + (t < 10 ? 1 : 2);
+		char* filename = malloc(fnameLen);
+		snprintf(filename, fnameLen, "textile%u_8bit.bmp", t);
+		printf("Writing \"%s\"...\n", filename);
+		writeBitmap(img, filename, 256, 256);
+
+		free(img);
+		free(filename);
 	}
 }
