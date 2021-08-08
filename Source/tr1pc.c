@@ -254,7 +254,7 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	{
 		if (!strnicmp(args[3], "textile", 7))
 		{
-			tr1pc_replace_textile(bytelist, args, numTexTiles, p_TexTiles, palette);
+			tr1pc_replace_textile(bytelist, args, numTexTiles, p_TexTiles, palette, fsize);
 		}
 	}
 
@@ -3226,12 +3226,12 @@ void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 }
 
 // This function replaces a texture tile in the level from a bitmap file. The syntax is "trmod [FILE] REPLACE TEXTILE [#] [FILENAME.BMP]".
-void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE * palette)
+void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE * palette, unsigned fsize)
 {
-	int selection = atoi(args[4]);
+	unsigned int selection = atoi(args[4]);
 	char* filename = args[5];
 
-	if (selection < 0 || selection >= (int)numTexTiles)
+	if (selection < 0 || selection >= numTexTiles)
 	{
 		printf("ERROR: Textile selection must be between \"0\" and \"%d\", argument was \"%d\"", numTexTiles - 1, selection);
 		return 0;
@@ -3239,8 +3239,46 @@ void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 
 	printf("Replacing textile %d...\n", selection);
 
-	const unsigned w = 256;
-	const unsigned h = 256;
+	const short w = 256;
+	const short h = 256;
+	unsigned memorySize = 3 * w * h;
 
-	// todo
+	BYTE* bitmapImage = readBitmapFile(filename);
+	if (bitmapImage == NULL)
+	{
+		printf("ERROR: Could not read bitmap.\n");
+		return 0;
+	}
+
+	for (int j = 0; j < h; j++)
+	{
+		for (int i = 0; i < w; i++)
+		{
+			unsigned int curpos = j * w + i;
+			BYTE r;
+			BYTE g;
+			BYTE b;
+			BYTE pixelKey;
+
+			memcpy(&r, bitmapImage + curpos * 3 + 2, 1);
+			memcpy(&g, bitmapImage + curpos * 3 + 1, 1);
+			memcpy(&b, bitmapImage + curpos * 3 + 0, 1);
+
+			if (r == 0 && g == 0 && b == 0)
+			{
+				pixelKey = 0; // Reserved for pure-black aka transparent
+			}
+			else
+			{
+				pixelKey = findPixelKey(palette, r, g, b);
+			}
+
+			unsigned int curposFlip = ((h - 1 - j) * w) + i; // Bitmap rows are stored bottom-up
+			memcpy(bytelist + p_TexTiles[selection] + curposFlip, &pixelKey, 1);
+		}
+	}
+
+	writeFile(args[1], bytelist, fsize);
+
+	free(bitmapImage);
 }
