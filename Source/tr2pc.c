@@ -250,6 +250,14 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr2pc_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumDemoData, p_NumBoxes, p_NumOverlaps, p_NumSoundSources, fsize);
 	if (!_strnicmp(args[2], "extract", 7) && !strnicmp(args[3], "textile", 7)) tr2pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles8, palette8, !strnicmp(args[4], "all", 3) ? -1 : atoi(args[4]));
 
+	if (!_strnicmp(args[2], "replace", 7))
+	{
+		if (!strnicmp(args[3], "textile", 7))
+		{
+			tr2pc_replace_textile(bytelist, args, numTexTiles, p_TexTiles8, palette8, fsize);
+		}
+	}
+
 	free(palette8);
 	free(palette16);
 	free(p_TexTiles8);
@@ -2963,4 +2971,62 @@ void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 		free(img);
 		free(filename);
 	}
+}
+
+// This function replaces a texture tile in the level from a bitmap file. The syntax is "trmod [FILE] REPLACE TEXTILE [#] [FILENAME.BMP]".
+void tr2pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, unsigned fsize)
+{
+	unsigned int selection = atoi(args[4]);
+	char* filename = args[5];
+
+	if (selection < 0 || selection >= numTexTiles)
+	{
+		printf("ERROR: Textile selection must be between \"0\" and \"%d\", argument was \"%d\"", numTexTiles - 1, selection);
+		return 0;
+	}
+
+	printf("Replacing 8-bit textile %d...\n", selection);
+
+	const short w = 256;
+	const short h = 256;
+	unsigned memorySize = 3 * w * h;
+
+	BYTE* bitmapImage = readBitmapFile(filename);
+	if (bitmapImage == NULL)
+	{
+		printf("ERROR: Could not read bitmap.\n");
+		return 0;
+	}
+
+	for (int j = 0; j < h; j++)
+	{
+		for (int i = 0; i < w; i++)
+		{
+			unsigned int curpos = j * w + i;
+			BYTE r;
+			BYTE g;
+			BYTE b;
+			BYTE pixelKey;
+
+			memcpy(&r, bitmapImage + curpos * 3 + 2, 1);
+			memcpy(&g, bitmapImage + curpos * 3 + 1, 1);
+			memcpy(&b, bitmapImage + curpos * 3 + 0, 1);
+
+			if (r == 255 && g == 0 && b == 255)
+			{
+				pixelKey = 0; // Reserved for pure-magenta aka transparent
+			}
+			else
+			{
+				pixelKey = findPixelKey(palette8, r, g, b);
+			}
+
+			unsigned int curposFlip = ((h - 1 - j) * w) + i; // Bitmap rows are stored bottom-up
+			memcpy(bytelist + p_TexTiles[selection] + curposFlip, &pixelKey, 1);
+		}
+	}
+
+	writeFile(args[1], bytelist, fsize);
+
+	free(bitmapImage);
 }

@@ -3180,7 +3180,7 @@ void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 
 	for (int t = (selection == -1 ? 0 : selection); t <= (selection == -1 ? numTexTiles - 1 : selection); ++t)
 	{
-		unsigned char* img = (char*)malloc(3 * w * h);
+		BYTE* img = malloc(3 * w * h);
 		memset(img, 0, 3 * w * h); // Fill the whole image with 0s
 
 		for (int j = 0; j < h; j++)
