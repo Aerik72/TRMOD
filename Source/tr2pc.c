@@ -49,6 +49,7 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	// 16-bit palette
 	// NOTE: There is no reason for us to store the unused byte, so we'll discard it for a smaller memory footprint.
 	// tr_colour4 Palette16[256]; // 16-bit palette (1024 bytes)
+	// The 16-bit palette is used for identifying the colors of solid polygons, *not* textile colors.
 	// struct tr_colour4  // 4 bytes
 	// {
 	//		uint8_t Red;
@@ -69,18 +70,23 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 
 	// Texture tiles
 	// uint32_t NumTextiles; // number of texture tiles (4 bytes)
-	// tr2_textile8 Textile8[NumTextiles]; // 8-bit (palettized) textiles (NumTextiles * 65536 bytes)
-	// tr2_textile16 Textile16[NumTextiles]; // 16-bit (ARGB) textiles (NumTextiles * 131072 bytes)
 	memcpy(&freeuint1, bytelist + curpos, 4); // Number of Texture Tiles
 	numTexTiles = freeuint1;
 	curpos += 4;
 
+	// tr2_textile8 Textile8[NumTextiles]; // 8-bit (palettized) textiles (NumTextiles * 65536 bytes)
 	p_TexTiles8 = malloc(numTexTiles * sizeof(unsigned)); // Offsets of 8-bit TexTiles
 	for (int i = 0; i < numTexTiles; i++)
 	{
 		p_TexTiles8[i] = curpos;
 		curpos += (1 << 16); // Each texture is 8 bits in a 256 x 256 grid a.k.a. 2^16
 	}
+
+	// tr2_textile16 Textile16[NumTextiles]; // 16-bit (ARGB) textiles (NumTextiles * 131072 bytes)
+	// The 16-bit textile array, which contains[tr_textile16] structures, specifies colours using 16 - bit ARGB,
+	// where the highest bit (0x8000) is a crude alpha channel (really just a simple transparency: 0==transparent, 1==opaque).
+	// The next 5 bits(0x7C00) specify the red channel, the next 5 bits(0x03E0) specify the green channel,
+	// and the last 5 bits(0x001F) specify the blue channel, each on a scale from 0..31.
 	p_TexTiles16 = malloc(numTexTiles * sizeof(unsigned)); // Offsets of 16-bit TexTiles
 	for (int i = 0; i < numTexTiles; i++)
 	{
@@ -248,13 +254,26 @@ void tr2pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"add",3)&&!_strnicmp(args[3],"overlap",7)) tr1pc_add_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"overwrite",7)&&!_strnicmp(args[3],"overlap",7)) tr1pc_overwrite_overlap(bytelist, args, argc, p_NumOverlaps, fsize);
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr2pc_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumDemoData, p_NumBoxes, p_NumOverlaps, p_NumSoundSources, fsize);
-	if (!_strnicmp(args[2], "extract", 7) && !strnicmp(args[3], "textile", 7)) tr2pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles8, palette8, !strnicmp(args[4], "all", 3) ? -1 : atoi(args[4]));
+
+	if (!_strnicmp(args[2], "extract", 7))
+	{
+		if (!strnicmp(args[3], "textile", 9))
+		{
+			tr2pc_extract_textile16(bytelist, args, numTexTiles, p_TexTiles16, !strnicmp(args[4], "all", 3) ? -1 : atoi(args[4]));
+		}
+		else if (!strnicmp(args[3], "textile8", 7))
+		{
+			printf("WARNING: 8-bit textures are a legacy feature, and will probably not render on a modern PC.\n");
+			tr2pc_extract_textile8(bytelist, args, numTexTiles, p_TexTiles8, palette8, !strnicmp(args[4], "all", 3) ? -1 : atoi(args[4]));
+		}
+	}
 
 	if (!_strnicmp(args[2], "replace", 7))
 	{
-		if (!strnicmp(args[3], "textile", 7))
+		if (!strnicmp(args[3], "textile8", 7))
 		{
-			tr2pc_replace_textile(bytelist, args, numTexTiles, p_TexTiles8, palette8, fsize);
+			printf("WARNING: 8-bit textures are a legacy feature, and will probably not render on a modern PC.\n");
+			tr2pc_replace_textile8(bytelist, args, numTexTiles, p_TexTiles8, palette8, fsize);
 		}
 	}
 
@@ -2909,7 +2928,7 @@ void tr2pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_Nu
 }
 
 // int selection // -1 for all, 0 - (numTexTiles-1) for an individual texture tile
-void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles8, BYTE* palette8, int selection)
+void tr2pc_extract_textile8(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles8, BYTE* palette8, int selection)
 {
 	if (selection < -1 || selection >= (int)numTexTiles)
 	{
@@ -2973,8 +2992,90 @@ void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 	}
 }
 
+// tr2_textile16 Textile16[NumTextiles]; // 16-bit (ARGB) textiles (NumTextiles * 131072 bytes)
+// The 16-bit textile array, which contains[tr_textile16] structures, specifies colours using 16 - bit ARGB,
+// where the highest bit (0x8000) is a crude alpha channel (really just a simple transparency: 0==transparent, 1==opaque).
+// The next 5 bits(0x7C00) specify the red channel, the next 5 bits(0x03E0) specify the green channel,
+// and the last 5 bits(0x001F) specify the blue channel, each on a scale from 0..31.
+void tr2pc_extract_textile16(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles16, int selection)
+{
+	if (selection < -1 || selection >= (int)numTexTiles)
+	{
+		printf("ERROR: Textile selection must be between \"0\" and \"%d\" or \"all\", argument was \"%d\"", numTexTiles - 1, selection);
+		return 0;
+	}
+
+	// todo UM, ACTUALLY should just do 24-bit BMP.
+	// since we're not using the alpha channel, it's a waste of HDD space
+
+	if (selection == -1)
+	{
+		printf("Extracting all 16-bit textiles to 32-bit bitmap (BMP)...");
+	}
+	{
+		printf("Extracting 16-bit textile %d to 32-bit bitmap (BMP)...\n", selection);
+	}
+
+	// This function extracts a texture tile from the level into a bitmap file. The syntax is "trmod [FILE] EXTRACT TEXTILE [#/All]".
+
+	const unsigned w = 256;
+	const unsigned h = 256;
+
+	for (int t = (selection == -1 ? 0 : selection); t <= (selection == -1 ? numTexTiles - 1 : selection); ++t)
+	{
+		BYTE* img = malloc(4 * w * h);
+		//memset(img, 0, 4 * w * h); // Fill the whole image with 0s
+
+		for (int j = 0; j < h; j++)
+		{
+			for (int i = 0; i < w; i++)
+			{
+				unsigned int curpos = (j * w + i) * 2;
+				unsigned short pixel16;
+				BYTE a;
+				BYTE r;
+				BYTE g;
+				BYTE b;
+
+				memcpy(&pixel16, bytelist + p_TexTiles16[t] + curpos, 2);
+
+				a = pixel16 >> 15 == 1 ? 255 : 0;
+				r = (pixel16 >> 10) & 0b11111; // 5-bit red channel
+				g = (pixel16 >> 5) & 0b11111; // 5-bit green channel
+				b = pixel16 & 0b11111; // 5-bit blue channel
+
+				if (a == 0)
+				{
+					// TR2 transparency - full magenta
+					img[i * 4 + j * w * 4 + 2] = 255; // 8-bit red
+					img[i * 4 + j * w * 4 + 1] = 0;   // 8-bit green
+					img[i * 4 + j * w * 4 + 0] = 255; // 8-bit blue
+					img[i * 4 + j * w * 4 + 3] = 255; // Opaque (according to BMP)
+				}
+				else
+				{
+					// Full color / full opaque
+					img[i * 4 + j * w * 4 + 2] = r * 255 / 31; // Convert to 8-bit red
+					img[i * 4 + j * w * 4 + 1] = g * 255 / 31; // Convert to 8-bit green
+					img[i * 4 + j * w * 4 + 0] = b * 255 / 31; // Convert to 8-bit blue
+					img[i * 4 + j * w * 4 + 3] = 255; // Opaque
+				}
+			}
+		}
+
+		unsigned fnameLen = 12 + (t < 10 ? 1 : 2);
+		char* filename = malloc(fnameLen);
+		snprintf(filename, fnameLen, "textile%u.bmp", t);
+		printf("Writing \"%s\"...\n", filename);
+		writeBitmap32(img, filename, 256, 256);
+
+		free(img);
+		free(filename);
+	}
+}
+
 // This function replaces a texture tile in the level from a bitmap file. The syntax is "trmod [FILE] REPLACE TEXTILE [#] [FILENAME.BMP]".
-void tr2pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, unsigned fsize)
+void tr2pc_replace_textile8(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, unsigned fsize)
 {
 	unsigned int selection = atoi(args[4]);
 	char* filename = args[5];

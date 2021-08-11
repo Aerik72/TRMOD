@@ -166,6 +166,9 @@ unsigned removerange(char *bytelist, unsigned offset, unsigned length, unsigned 
 	return (fsize-length);
 }
 
+// This function writes a 24-bit bitmap (R8 G8 B8)
+// In TR1, full black (0, 0, 0) represents transparent
+// In TR2, full magenta (255, 0, 255) represents transparent
 void writeBitmap(char* img, char* filename, const unsigned w, const unsigned h)
 {
 	FILE* f;
@@ -196,6 +199,39 @@ void writeBitmap(char* img, char* filename, const unsigned w, const unsigned h)
 	{
 		fwrite(img + (w * (h - i - 1) * 3), 3, w, f);
 		fwrite(bmppad, 1, (4 - (w * 3) % 4) % 4, f); // bmp requires all rows to be postfix padded to a multiple of 4
+	}
+
+	fclose(f);
+}
+
+void writeBitmap32(char* img, char* filename, const unsigned w, const unsigned h)
+{
+	FILE* f;
+	int bmpFileSize = 54 + 4 * w * h;
+
+	unsigned char bmpfileheader[14] = { 'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0 };
+	unsigned char bmpinfoheader[40] = { 40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 32,0 };
+
+	bmpfileheader[2] = (unsigned char)(bmpFileSize);
+	bmpfileheader[3] = (unsigned char)(bmpFileSize >> 8);
+	bmpfileheader[4] = (unsigned char)(bmpFileSize >> 16);
+	bmpfileheader[5] = (unsigned char)(bmpFileSize >> 24);
+
+	bmpinfoheader[4] = (unsigned char)(w);
+	bmpinfoheader[5] = (unsigned char)(w >> 8);
+	bmpinfoheader[6] = (unsigned char)(w >> 16);
+	bmpinfoheader[7] = (unsigned char)(w >> 24);
+	bmpinfoheader[8] = (unsigned char)(h);
+	bmpinfoheader[9] = (unsigned char)(h >> 8);
+	bmpinfoheader[10] = (unsigned char)(h >> 16);
+	bmpinfoheader[11] = (unsigned char)(h >> 24);
+
+	f = fopen(filename, "wb");
+	fwrite(bmpfileheader, 1, 14, f);
+	fwrite(bmpinfoheader, 1, 40, f);
+	for (int i = 0; i < h; i++)
+	{
+		fwrite(img + (w * (h - i - 1) * 4), 4, w, f);
 	}
 
 	fclose(f);
