@@ -39,6 +39,9 @@ void tr2pc_get_zones(char *bytelist, char *args[], unsigned p_NumBoxes, unsigned
 void tr2pc_add_zone(char *bytelist, char *args[], unsigned p_NumBoxes, unsigned p_NumOverlaps, unsigned fsize);
 void tr2pc_replace_zone(char *bytelist, char *args[], unsigned p_NumBoxes, unsigned p_NumOverlaps, unsigned fsize);
 void tr2pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumItems, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumDemoData, unsigned p_NumBoxes, unsigned p_NumOverlaps, unsigned p_NumSoundSources, unsigned fsize);
-void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, int selection);
+void tr2pc_extract_textile8(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, int selection);
+void tr2pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles16, int selection);
+void tr2pc_replace_textile8(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette8, unsigned fsize);
+void tr2pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, unsigned fsize);
 
 #endif

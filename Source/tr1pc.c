@@ -250,6 +250,14 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	if (!_strnicmp(args[2],"get",3)&&!_strnicmp(args[3],"offset",6)) tr1pc_get_offset(bytelist, args, argc, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumItems, p_NumSpriteSequences, p_NumCameras, p_NumDemoData, p_NumBoxes, p_NumOverlaps, p_NumSoundDetails, p_NumSamples, p_NumSampleIndices, p_NumSoundSources, fsize);
 	if (!_strnicmp(args[2],"extract",7)&&!strnicmp(args[3],"textile",7)) tr1pc_extract_textile(bytelist, args, numTexTiles, p_TexTiles, palette, !strnicmp(args[4],"all",3) ? -1 : atoi(args[4]));
 
+	if (!_strnicmp(args[2], "replace", 7))
+	{
+		if (!strnicmp(args[3], "textile", 7))
+		{
+			tr1pc_replace_textile(bytelist, args, numTexTiles, p_TexTiles, palette, fsize);
+		}
+	}
+
 	free(p_TexTiles);
 	free(roomX);
 	free(roomY);
@@ -3152,8 +3160,9 @@ void tr1pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_Nu
 	if (!_strnicmp(args[4],"numsampleindices",16)) printf("%X\n",p_NumSampleIndices);
 }
 
+// This function extracts a texture tile from the level into a bitmap file. The syntax is "trmod [FILE] EXTRACT TEXTILE [#/All]".
 // int selection // -1 for all, 0 - (numTexTiles-1) for an individual texture tile
-void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, unsigned char* palette, int selection)
+void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette, int selection)
 {
 	if (selection < -1 || selection >= (int)numTexTiles)
 	{
@@ -3162,7 +3171,6 @@ void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 	}
 
 	printf("Extracting textile %d...\n", selection);
-	// This function extracts a texture tile from the level into a bitmap file. The syntax is "trmod [FILE] EXTRACT TEXTILE [#/All]".
 
 	printf("Writing \"palette.bmp\"...\n");
 	writeBitmap(palette, "palette.bmp", 16, 16);
@@ -3170,9 +3178,9 @@ void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 	const unsigned w = 256;
 	const unsigned h = 256;
 
-	for (int t = (selection == -1 ? 0 : selection); t <= (selection == -1 ? numTexTiles-1 : selection); ++t)
+	for (int t = (selection == -1 ? 0 : selection); t <= (selection == -1 ? numTexTiles - 1 : selection); ++t)
 	{
-		unsigned char* img = (char*)malloc(3 * w * h);
+		BYTE* img = malloc(3 * w * h);
 		memset(img, 0, 3 * w * h); // Fill the whole image with 0s
 
 		for (int j = 0; j < h; j++)
@@ -3215,4 +3223,61 @@ void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 		free(img);
 		free(filename);
 	}
+}
+
+// This function replaces a texture tile in the level from a bitmap file. The syntax is "trmod [FILE] REPLACE TEXTILE [#] [FILENAME.BMP]".
+void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE * palette, unsigned fsize)
+{
+	unsigned int selection = atoi(args[4]);
+	char* filename = args[5];
+
+	if (selection < 0 || selection >= numTexTiles)
+	{
+		printf("ERROR: Textile selection must be between \"0\" and \"%d\", argument was \"%d\"", numTexTiles - 1, selection);
+		return 0;
+	}
+
+	printf("Replacing textile %d...\n", selection);
+
+	const short w = 256;
+	const short h = 256;
+
+	BYTE* bitmapImage = readBitmapFile(filename);
+	if (bitmapImage == NULL)
+	{
+		printf("ERROR: Could not read bitmap.\n");
+		return 0;
+	}
+
+	for (int j = 0; j < h; j++)
+	{
+		for (int i = 0; i < w; i++)
+		{
+			unsigned int curpos = j * w + i;
+			BYTE r;
+			BYTE g;
+			BYTE b;
+			BYTE pixelKey;
+
+			memcpy(&r, bitmapImage + curpos * 3 + 2, 1);
+			memcpy(&g, bitmapImage + curpos * 3 + 1, 1);
+			memcpy(&b, bitmapImage + curpos * 3 + 0, 1);
+
+			if (r == 0 && g == 0 && b == 0)
+			{
+				pixelKey = 0; // Reserved for pure-black aka transparent
+			}
+			else
+			{
+				pixelKey = findPixelKey(palette, r, g, b);
+			}
+
+			unsigned int curposFlip = ((h - 1 - j) * w) + i; // Bitmap rows are stored bottom-up
+			memcpy(bytelist + p_TexTiles[selection] + curposFlip, &pixelKey, 1);
+		}
+	}
+
+	writeFile(args[1], bytelist, fsize);
+
+	free(bitmapImage);
 }

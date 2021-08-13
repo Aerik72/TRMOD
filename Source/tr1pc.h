@@ -1,6 +1,8 @@
 #ifndef TR1PC_H_INCLUDED
 #define TR1PC_H_INCLUDED
 
+typedef unsigned char BYTE;
+
 void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize);
 void tr1pc_list(char *bytelist, char *args[], unsigned roomX[], int roomY[], unsigned roomZ[], unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumBoxes, unsigned p_NumSoundSources, unsigned p_NumItems, unsigned short numRooms, unsigned fsize);
 void tr1pc_add_item(char *bytelist, char *args[], unsigned roomX[], int roomY[], unsigned roomZ[], unsigned p_NumItems, unsigned fsize);
@@ -59,6 +61,7 @@ void tr1pc_replace_zone(char *bytelist, char *args[], unsigned p_NumBoxes, unsig
 void tr1pc_add_overlap(char *bytelist, char *args[], unsigned argc, unsigned p_NumOverlaps, unsigned fsize);
 void tr1pc_overwrite_overlap(char *bytelist, char *args[], unsigned argc, unsigned p_NumOverlaps, unsigned fsize);
 void tr1pc_get_offset(char *bytelist, char *args[], unsigned argc, unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumItems, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumDemoData, unsigned p_NumBoxes, unsigned p_NumOverlaps, unsigned p_NumSoundDetails, unsigned p_NumSamples, unsigned p_NumSampleIndices, unsigned p_NumSoundSources, unsigned fsize);
-void tr1pc_extract_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, unsigned char* palette, int selection);
+void tr1pc_extract_textile(char *bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette, int selection);
+void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, unsigned* p_TexTiles, BYTE* palette, unsigned fsize);
 
 #endif
