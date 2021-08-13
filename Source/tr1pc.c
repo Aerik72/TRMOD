@@ -3241,7 +3241,6 @@ void tr1pc_replace_textile(char* bytelist, char* args[], unsigned numTexTiles, u
 
 	const short w = 256;
 	const short h = 256;
-	unsigned memorySize = 3 * w * h;
 
 	BYTE* bitmapImage = readBitmapFile(filename);
 	if (bitmapImage == NULL)
