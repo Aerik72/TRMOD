@@ -190,7 +190,7 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	*/
 	// </FILE NAVIGATION>
 	//printf("Parsing args...\n");
-	if (!_strnicmp(args[2],"list",4)||!_strnicmp(args[2],"clist",5)) tr1pc_list(bytelist, args, roomX, roomY, roomZ, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumSpriteSequences, p_NumCameras, p_NumBoxes, p_NumSoundSources, p_NumItems, numRooms, fsize);
+	if (!_strnicmp(args[2],"list",4)||!_strnicmp(args[2],"clist",5)) tr1pc_list(bytelist, argc, args, roomX, roomY, roomZ, p_NumVertices, p_NumSprites, p_NumLights, p_NumZSector, p_NumStaticMeshes, p_AlternateRoom, p_NumFloorData, p_NumSpriteSequences, p_NumCameras, p_NumBoxes, p_NumSoundSources, p_NumItems, numRooms, fsize);
 	if (!_strnicmp(args[2],"add",3)&&!_strnicmp(args[3],"item",4)) tr1pc_add_item(bytelist, args, roomX, roomY, roomZ, p_NumItems, fsize);
 	if (!_strnicmp(args[2],"replace",7)&&!_strnicmp(args[3],"item",4)) tr1pc_replace_item(bytelist, argc, args, roomX, roomY, roomZ, p_NumItems, fsize);
 	if (!_strnicmp(args[2],"remove",6)&&!_strnicmp(args[3],"item",4)) tr1pc_remove_item(bytelist, argc, args, p_NumZSector, p_NumFloorData, p_NumItems, numRooms, fsize);
@@ -262,7 +262,12 @@ void tr1pc_main(int argc, char *args[], char *bytelist, unsigned fsize){
 	free(p_AlternateRoom);
 	free(palette);
 }
-void tr1pc_list(char *bytelist, char *args[], unsigned roomX[], int roomY[], unsigned roomZ[], unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumBoxes, unsigned p_NumSoundSources, unsigned p_NumItems, unsigned short numRooms, unsigned fsize){
+void tr1pc_list(char *bytelist, int argc, char *args[], unsigned roomX[], int roomY[], unsigned roomZ[], unsigned p_NumVertices[], unsigned p_NumSprites[], unsigned p_NumLights[], unsigned p_NumZSector[], unsigned p_NumStaticMeshes[], unsigned p_AlternateRoom[], unsigned p_NumFloorData, unsigned p_NumSpriteSequences, unsigned p_NumCameras, unsigned p_NumBoxes, unsigned p_NumSoundSources, unsigned p_NumItems, unsigned short numRooms, unsigned fsize){
+	if (argc < 4)
+	{
+		printf("ERROR: Insufficient arguments. The syntax is \"trmod [FILE] <LIST/CLIST> [OUTPUT FILE]\".\n");
+		return 0;
+	}
 	/*
 	This function produces a list of all Items, Static Meshes, Sprites, Soundsources, Alternate rooms and FloorData
 	The function LIST produces a clear and easy to read format, and CLIST produces the list in the form of TRMOD commands

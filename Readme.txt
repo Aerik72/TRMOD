@@ -1,5 +1,5 @@
 Tomb Raider Level Modifier (TRMOD) 0.3
-2015 Beta 1-2 b122251
+2015 Beta b122251
 2021 0.3 Erik R
 =========================================================
 
@@ -468,4 +468,10 @@ COMMAND LIST:
   Note that Page # is 0-indexed
   Example TRMOD LEVEL3A.PHD EXTRACT TEXTILE ALL // Writes palette.bmp, textile0.bmp, textile1.bmp, ... textile11.bmp
           TRMOD EGYPT.TUB EXTRACT TEXTILE 7 // Writes palette.bmp, textile7.bmp
++===========================================================================================+
+• trmod [FILE] REPLACE TEXTILE {Page #} [BITMAP FILE]
+  This command replaces the given texture tile with a new bitmap image.
+  Note that the bitmap must be in 24-bit (R8 G8 B8) format, uncompressed.
+  Note that Page # is 0-indexed
+  Example TRMOD LEVEL3A.PHD REPLACE TEXTILE 0 textile0_mod.bmp // Replaces textile 0 with a modified bitmap
 +===========================================================================================+
